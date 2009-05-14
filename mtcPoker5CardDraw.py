@@ -1,9 +1,7 @@
 #!/usr/bin/python2.5
 
 import os,  random
-from libavg import avg
-from libavg import Point2D
-from libavg import AVGApp
+from libavg import avg, button, Point2D, AVGApp,  anim
 from libavg.AVGAppUtil import getMediaDir
 from pokereval import PokerEval
 
@@ -15,9 +13,44 @@ pokereval = PokerEval()
 myHand = None
 holdarray = ["hold1",  "hold2",  "hold3",  "hold4",  "hold5"]
 kartenarray = ["karte1",  "karte2",  "karte3",  "karte4",  "karte5"]
-wintablearray = ["RoyalFlush", "StraightFlush", "Quads", "FullHouse", "Flush", "Straight", "Trips", "TwoPair", "OnePair"]
-winpointsarray = ["10000",  "5000",  "3000",  "1000",  "300", "200", "50", "30",  "10"]
+wintablearray = ["RoyalFlush", "StFlush", "Quads", "FlHouse", "Flush", "Straight", "Trips", "TwoPair", "OnePair"]
+winpointsarray = ["10000",  "5000",  "3000",  "1000",  "300", "200", "50", "20",  "5"]
 
+class DealButton(button.Button):
+    def __init__(self, onStartClick):
+        dealNode = g_player.getElementByID("deal_button")
+        dealNode.active = True
+        anim.fadeIn(dealNode, 800).start()
+        button.Button.__init__(self, dealNode, onStartClick)
+    def delete(self):
+        dealNode = g_player.getElementByID("deal_button")
+        dealNode.active = False
+        anim.fadeOut(dealNode, 800).start()
+        button.Button.delete(self)
+        
+class StartButton(button.Button):
+    def __init__(self, onStartClick):
+        dealNode = g_player.getElementByID("go_button")
+        dealNode.active = True
+        anim.fadeIn(dealNode, 800).start()
+        button.Button.__init__(self, dealNode, onStartClick)
+    def delete(self):
+        dealNode = g_player.getElementByID("go_button")
+        dealNode.active = False
+        anim.fadeOut(dealNode, 800).start()
+        button.Button.delete(self)
+        
+class ExitButton(button.Button):
+    def __init__(self, onStopClick):
+        exitNode = g_player.getElementByID("exit_button")
+        exitNode.active = True
+        anim.fadeIn(exitNode, 800).start()
+        button.Button.__init__(self, exitNode, onStopClick)
+    def delete(self):
+        exitNode = g_player.getElementByID("exit_button")
+        exitNode.active = False
+        anim.fadeOut(exitNode, 800).start()
+        button.Button.delete(self)
 
 def slurp(filename):
     filename = getMediaDir(__file__, filename)
@@ -26,22 +59,26 @@ def slurp(filename):
     f.close()
     return contents
 
-
 class Game(AVGApp):
     multitouch = True
     def init(self):
         self._parentNode.mediadir = getMediaDir(__file__, '.')
         mainNode = g_player.createNode(slurp("mtc5Poker5CardDraw.avg"))
         self._parentNode.appendChild(mainNode)
-        g_player.getElementByID("buttonExit").setEventHandler(avg.CURSORUP,  avg.MOUSE | avg.TOUCH , lambda e: self.leave())
+        self.exitButton = ExitButton(lambda e: self.leave())
+        self.startButton = StartButton(self.startGame)
 
+    def leave(self):
+        AVGApp.leave(self)
+        
     def _enter(self):
-        g_player.getElementByID("buttonStart").setEventHandler(avg.CURSORDOWN,  avg.MOUSE | avg.TOUCH , lambda e: self.startGame())
+        pass
 
-    def startGame(self):
+    def startGame(self, event):
         global myHand
-        g_player.getElementByID("buttonStart").text = "Deal"
-        g_player.getElementByID("buttonStart").setEventHandler(avg.CURSORDOWN,  avg.MOUSE | avg.TOUCH ,  self.DealCards)
+        self.startButton.delete()
+        self.startButton = None
+        self.dealButton = DealButton(self.DealCards)
         self.turn = 1
         self.money = 1000
         g_player.getElementByID("credits").text = "Credits = " + str(self.money)
@@ -89,8 +126,7 @@ class Game(AVGApp):
             if not dummynumber in myHand.tenCards:
                 myHand.tenCards[zaehler] = dummynumber
                 zaehler += 1
-                        
-        g_player.getElementByID("buttonStart").setEventHandler(avg.CURSORDOWN,  avg.MOUSE | avg.TOUCH ,  self.ChangeCards)
+        self.dealButton = DealButton(self.ChangeCards)
         g_player.getElementByID("karte1").setEventHandler(avg.CURSORDOWN,  avg.MOUSE | avg.TOUCH ,  self.HoldKarte1)
         g_player.getElementByID("karte2").setEventHandler(avg.CURSORDOWN,  avg.MOUSE | avg.TOUCH ,  self.HoldKarte2)
         g_player.getElementByID("karte3").setEventHandler(avg.CURSORDOWN,  avg.MOUSE | avg.TOUCH ,  self.HoldKarte3)
@@ -114,25 +150,27 @@ class Game(AVGApp):
         if myHand.holdKarte5 == 0:
             myHand.Cards[4].Number = int(myHand.tenCards[9])
         for i in range(0, 5, 1):
-            myHand.Cards[i].NumberToPicture()
-        g_player.getElementByID("buttonStart").setEventHandler(avg.CURSORDOWN,  avg.MOUSE | avg.TOUCH ,  self.DealCards)
+            myHand.Cards[i].NumberToPicture()       
+        self.dealButton = DealButton(self.DealCards)
         self.ShowCards()
         self.CheckWin()
         
     def CheckWin(self):
         Akkr = ["00","Ac","As","Ah","Ad","Kc","Ks","Kh","Kd","Qc","Qs","Qh","Qd","Jc","Js","Jh","Jd","Tc","Ts","Th","Td","9c","9s","9h","9d","8c","8s","8h","8d","7c","7s","7h","7d","6c","6s","6h","6d","5c","5s","5h","5d","4c","4s","4h","4d","3c","3s","3h","3d","2c","2s","2h","2d"]
         hand = [Akkr[myHand.Cards[0].Number], Akkr[myHand.Cards[1].Number], Akkr[myHand.Cards[2].Number], Akkr[myHand.Cards[3].Number], Akkr[myHand.Cards[4].Number] ]
-        # best_hand = pokereval.best_hand("hi", hand)
+#        hand = ["Ac", "As", "Ad", "Ts", "Tc"]
         testmu = pokereval.best("hi", hand)
         testmu2 = testmu[1]
         testmu3 = testmu2[0]
-        # g_player.getElementByID("textzeile").text = testmu3
         if not testmu3 == "NoPair":
             node = g_player.getElementByID(str(testmu3))
             if node:
                 node.color = "FF0000"
+                g_player.getElementByID("textzeile").text = "You Win " +  str(winpointsarray[wintablearray.index(str(testmu3))]) + " Credits"
                 self.money += int(winpointsarray[wintablearray.index(str(testmu3))])
                 g_player.getElementByID("credits").text = "Credits = " + str(self.money)
+        else: 
+            g_player.getElementByID("textzeile").text = "Nothing..."
             
     def HoldKarte1(self,  event):
             global g_player,  myHand
