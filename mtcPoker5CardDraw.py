@@ -2,7 +2,7 @@
 
 import os,  random
 from libavg import avg, button, Point2D, AVGApp,  anim
-from libavg.AVGAppUtil import getMediaDir
+from libavg.utils import getMediaDir
 from pokereval import PokerEval
 
 from card import Card
